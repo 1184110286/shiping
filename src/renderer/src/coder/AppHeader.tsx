@@ -17,7 +17,7 @@ const TITLES: Record<AppMode, string> = {
 
 export function AppHeader({ mode }: { mode: AppMode }) {
   const navigate = useNavigate()
-  const { ignoreMouse } = useAppStore()
+  const { ignoreMouse, update } = useAppStore()
   // A shortcut or a toolbar hover can switch either unnoticed, so both stay in view
   const model = useSettingsStore((state) => {
     const id = mode === 'screenshot' ? state.screenshotProfileId : state.conversationProfileId
@@ -65,6 +65,15 @@ export function AppHeader({ mode }: { mode: AppMode }) {
       >
         <span className="truncate">{TITLES[mode]}</span>
         {appVersion && <span className="shrink-0 text-[10px] opacity-60">v{appVersion}</span>}
+        {update && (
+          // Details and the download are on the help page
+          <button
+            className="shrink-0 cursor-pointer rounded-sm bg-emerald-600 px-1 text-[10px] leading-4 text-white [-webkit-app-region:no-drag] hover:bg-emerald-500"
+            onClick={() => navigate('/help')}
+          >
+            有新版本
+          </button>
+        )}
       </div>
       {context && (
         <span

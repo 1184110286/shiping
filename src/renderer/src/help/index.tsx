@@ -18,6 +18,7 @@ import { HelpSection } from './components'
 import { Shortcuts } from './Shortcuts'
 import { OverlayToolbarHelp } from './OverlayToolbar'
 import { FAQ } from './FAQ'
+import { UpdateNotice } from './UpdateNotice'
 
 export default function HelpPage() {
   const [appVersion, setAppVersion] = useState('')
@@ -45,6 +46,7 @@ export default function HelpPage() {
       <div id="app-content" className="flex flex-col gap-4 p-8">
         {/* Introduction */}
         <HelpSection Icon={Info} title="简介" description={appVersion && `当前版本 v${appVersion}`}>
+          <UpdateNotice />
           <p className="text-gray-700">
             欢迎使用截屏解题助手！无论是 编程面试 / 在线考试 还是其他解题场景，
             该工具都可以帮助您快速截图，分析屏幕内容，并给出解答建议。 您可以访问本项目{' '}

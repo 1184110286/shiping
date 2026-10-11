@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import type { AvailableUpdate } from '../../../../shared/update'
 
 interface AppState {
   ignoreMouse: boolean
@@ -7,6 +8,9 @@ interface AppState {
 }
 
 interface AppStore extends AppState {
+  /** A newer release main found; the header and the help page show it */
+  update: AvailableUpdate | null
+  setUpdate: (update: AvailableUpdate | null) => void
   setIgnoreMouse: (ignore: boolean) => void
   toggleIgnoreMouse: () => void
   /** Adopt what main reports; it sends its whole state, of which these are the fields used here */
@@ -20,6 +24,10 @@ const defaultState: AppState = {
 
 export const useAppStore = create<AppStore>()((set) => ({
   ...defaultState,
+  update: null,
+  setUpdate: (update) => {
+    set({ update })
+  },
   setIgnoreMouse: (ignore) => {
     set({ ignoreMouse: ignore })
   },

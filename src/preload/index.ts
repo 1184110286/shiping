@@ -9,11 +9,22 @@ import type { CaptureRegion, RegionRect } from '../shared/capture-region'
 import type { TranscriptionOptions } from '../main/transcription'
 import type { ConversationSnapshot, HintCard, Utterance } from '../shared/conversation'
 import type { KnowledgeDoc, KnowledgeImportResult, KnowledgePatch } from '../shared/knowledge'
+import type { AvailableUpdate } from '../shared/update'
 
 // Custom APIs for renderer
 const api = {
   // Get the installed app version (package.json version at build time)
   getAppVersion: () => ipcRenderer.invoke('getAppVersion') as Promise<string>,
+  // A newer release main found (null: none); Windows downloads and installs it on request
+  getUpdateStatus: () => ipcRenderer.invoke('update:get-status') as Promise<AvailableUpdate | null>,
+  downloadUpdate: () => ipcRenderer.invoke('update:download'),
+  installUpdate: () => ipcRenderer.invoke('update:install'),
+  onUpdateStatus: (callback: (update: AvailableUpdate) => void) => {
+    ipcRenderer.on('update-status', (_event, update: AvailableUpdate) => callback(update))
+  },
+  removeUpdateStatusListener: () => {
+    ipcRenderer.removeAllListeners('update-status')
+  },
   // Get app settings
   getAppSettings: () => ipcRenderer.invoke('getAppSettings'),
   // Update app settings

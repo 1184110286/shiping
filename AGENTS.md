@@ -53,7 +53,7 @@ src/
 │   ├── save-conversation.ts # 对话模式's conversation → one Markdown file per conversation
 │   ├── transcription.ts     # DashScope WebSocket real-time speech-to-text (截图模式 text or 对话模式 sentences)
 │   ├── window-resize.ts     # Cursor-tracking resize for the frameless windows
-│   ├── auto-updater.ts      # electron-updater (non-macOS only)
+│   ├── auto-updater.ts      # New releases, announced in the window: Windows installs via electron-updater, macOS links to the page
 │   └── index.d.ts           # global.mainWindow type declaration
 ├── preload/
 │   ├── index.ts             # contextBridge API: exposes window.api to renderer
@@ -63,6 +63,7 @@ src/
 │   ├── capture-region.ts    # CaptureRegion type + fractions → pixels, for main's crop and the picker's readout
 │   ├── api-profile.ts       # ApiProfile + AppMode types
 │   ├── knowledge.ts         # KnowledgeDoc type, the suggested per-mode limit, estimateTokens()
+│   ├── update.ts            # AvailableUpdate: a newer release main found, and how far its download got
 │   └── conversation.ts      # 对话模式 types (Utterance, HintCard, HintMode) + countMeaningfulChars()
 └── renderer/
     ├── index.html            # SPA entry
@@ -103,6 +104,7 @@ src/
         │   ├── Shortcuts.tsx
         │   ├── OverlayToolbar.tsx  # Toolbar section (buttons + meanings + shortcuts)
         │   ├── FAQ.tsx
+        │   ├── UpdateNotice.tsx    # 发现新版本 card in 简介: download / install on Windows, release page on macOS
         │   └── components/index.tsx  # HelpSection wrapper
         ├── components/
         │   ├── MarkdownRenderer.tsx   # react-markdown + remark-gfm + rehype-highlight + KaTeX math
@@ -198,6 +200,7 @@ src/
 - `start-transcription` / `stop-transcription` — speech transcription lifecycle; start takes `{ purpose, maxSentenceSilence }`
 - `conversation:get-snapshot` / `conversation:request-hint` / `conversation:stop-hints` / `conversation:clear` — 对话模式
 - `get-transcription-text` / `clear-transcription-text` — read/clear accumulated text
+- `update:get-status` / `update:download` / `update:install` — a newer release; the last two are Windows only
 - `knowledge:list` / `knowledge:get-text` / `knowledge:pick-files` / `knowledge:import-files` / `knowledge:create` / `knowledge:update` / `knowledge:reimport` / `knowledge:remove` — 资料库; imports and reimports return their failures as values, not rejections
 
 **Main → Renderer (send):**
@@ -215,6 +218,7 @@ src/
 - `conversation-utterance` / `conversation-utterance-removed` / `conversation-hint` / `conversation-hint-chunk` / `conversation-cleared` / `conversation-notice` — 对话模式 state from main
 - `thinking-unsupported` — the active model refused 「关闭思考」 (model name); sent once per model per session, the request has already been resent without it
 - `capture-region-picked` — a new capture region, from whichever entry point started the pick
+- `update-status` — a newer release was found, or its download moved on
 - `scroll-page-up` / `scroll-page-down` — keyboard-driven scroll
 - `toggle-transcription` — trigger start/stop transcription from shortcut
 - `sync-toolbar-settings` — push toolbar-only settings (hover dwell) into the toolbar window
@@ -229,7 +233,7 @@ src/
 | `useSolutionStore` | `lib/store/solution.ts` | No | `isLoading`, `solutionChunks`, `reasoningRounds`, `liveRound`, `roundUi`, `screenshotData`, `errorMessage`, `durationMs` |
 | `useTranscriptionStore` | `lib/store/transcription.ts` | No | `isTranscribing`, `transcriptionText`, `errorMessage` |
 | `useConversationStore` | `lib/store/conversation.ts` | No | `utterances`, `hints`, `errorMessage`, `focusedHintId` |
-| `useAppStore` | `lib/store/app.ts` | No | `ignoreMouse`, `inConversationPage` |
+| `useAppStore` | `lib/store/app.ts` | No | `ignoreMouse`, `inConversationPage`, `update` (a newer release, from main) |
 
 Settings are bidirectionally synced: renderer persists to localStorage, and on mount syncs to main process via `updateAppSettings()`. Main process `.env` values serve as initial defaults only.
 
@@ -352,6 +356,14 @@ Material the user wants the AI to draw on — a resume, prepared Q&A, notes — 
 - Categories: `Window Management`, `Screenshot` (截图模式 only), `Conversation` (对话模式 only), `AI` (acts on whichever mode is on screen: stop, profile, scene, transcription), `Navigation`, `Window Movement`. Only the key of a stored binding is the user's; `merge` takes the category from the code
 - Actions acting on "the current mode" check `inModePage()` (`state.ts`) and are answered by `useModePage()` on either page
 
+### Update Notice
+
+`src/main/auto-updater.ts` checks at startup and every 6 hours, and reports a newer release with `update-status`. It is never a native dialog or a system notification: those are drawn outside content protection, so one popping up mid-interview would show on the shared screen
+- Shown inside the main window only: a 「有新版本」 badge after the version in `AppHeader`, leading to the help page, where `UpdateNotice` holds the details and the button
+- Windows: electron-updater with `autoDownload = false`. The user starts the download and the restart; a finished download also installs on quit (`autoInstallOnAppQuit`)
+- macOS: unsigned, so Squirrel.Mac cannot update it. Main reads GitHub's `releases/latest` with `net.fetch` (system proxy) and the card links to the release page
+- Both follow Latest only, never a pre-release: a release reaches users once it is promoted to Latest. A failed check stays silent
+
 ### Mouse Click-through
 
 - `state.ignoreMouse` is the user's preference; `applyIgnoreMouse()` in `shortcuts.ts` is the only place that applies it to the window. Go through `setIgnoreMouse()` / `applyIgnoreMouse()`, never `setIgnoreMouseEvents()` directly
@@ -422,7 +434,7 @@ These are read by dotenv in the main process and merged with renderer-side setti
 
 8. **Window movement**: The window can be moved via keyboard shortcuts in 200px steps (up/down/left/right), and resized by dragging its edges (see Window Resizing).
 
-9. **macOS auto-update is disabled**: `publish: null` in electron-builder.yml for mac target. Auto-update only works on Windows.
+9. **macOS has no auto-update**: `publish: null` in electron-builder.yml for the mac target, since the build is unsigned. It only gets the in-window notice linking to the release page (see Update Notice).
 
 10. **macOS and Windows only**: Linux is not a supported or built target.
 

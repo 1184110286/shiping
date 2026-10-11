@@ -21,7 +21,7 @@ nsis:
 mac:
   artifactName: ${name}-${version}-${arch}-mac.${ext}
   entitlementsInherit: build/entitlements.mac.plist
-  publish: null  # 关闭 macOS 自动更新功能
+  publish: null  # macOS 版未签名，不能自动更新；应用内只提示新版本并链接到发布页
   extendInfo:
     - NSCameraUsageDescription: Application requests access to the device's camera.
     - NSMicrophoneUsageDescription: Application requests access to the device's microphone.

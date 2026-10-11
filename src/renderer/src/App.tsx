@@ -8,6 +8,7 @@ import HelpPage from '@/help'
 import { OverlayToolbar } from '@/coder/OverlayToolbar'
 import { useSettingsStore } from '@/lib/store/settings'
 import { useShortcutsStore } from '@/lib/store/shortcuts'
+import { useAppStore } from '@/lib/store/app'
 import { getCloneableFields } from '@/lib/utils'
 import { applyTheme } from '@/lib/theme'
 import { WindowResizeHandles } from '@/components/WindowResizeHandles'
@@ -70,6 +71,14 @@ export default function App() {
       if (profile && profile.vision === undefined) store.updateProfile(profileId, { vision: false })
     })
     return () => window.api.removeVisionUnsupportedListener()
+  }, [])
+
+  // A newer release, as main finds it: at startup and every few hours after
+  useEffect(() => {
+    const { setUpdate } = useAppStore.getState()
+    window.api.getUpdateStatus().then(setUpdate)
+    window.api.onUpdateStatus(setUpdate)
+    return () => window.api.removeUpdateStatusListener()
   }, [])
 
   useEffect(() => {
