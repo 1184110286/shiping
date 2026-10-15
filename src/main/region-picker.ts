@@ -102,6 +102,8 @@ function createPickerWindow(display: Display): BrowserWindow {
     alwaysOnTop: true,
     skipTaskbar: true,
     hiddenInMissionControl: true,
+    // Over other apps' fullscreen Spaces, like the main window (see main-window.ts)
+    ...(process.platform === 'darwin' && { type: 'panel' }),
     hasShadow: false,
     // Started from a shortcut the app is in the background, and the first
     // click would otherwise only bring the window forward instead of dragging
@@ -114,7 +116,11 @@ function createPickerWindow(display: Display): BrowserWindow {
   })
 
   window.setAlwaysOnTop(true, 'screen-saver', PICKER_RELATIVE_LEVEL)
-  window.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
+  // Transforming the process type would hide the Dock icon, and nothing shows it again after a cancel
+  window.setVisibleOnAllWorkspaces(true, {
+    visibleOnFullScreen: true,
+    skipTransformProcessType: true
+  })
   window.setContentProtection(true)
   // Mixed-DPI setups on Windows can size a window created with bounds slightly off
   window.setBounds(display.bounds)
