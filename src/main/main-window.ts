@@ -27,6 +27,10 @@ export function createWindow(): void {
     alwaysOnTop: true,
     skipTaskbar: true,
     hiddenInMissionControl: true,
+    // macOS shows a regular app's window over another app's fullscreen Space
+    // only if its Spaces flags were set while the app had no Dock icon, and the
+    // Dock icon is on by default. A non-activating panel is let in either way
+    ...(process.platform === 'darwin' && { type: 'panel' }),
     show: false,
     autoHideMenuBar: true,
     webPreferences: {
@@ -60,9 +64,13 @@ export function createWindow(): void {
   mainWindow.on('ready-to-show', () => {
     mainWindow.show()
     mainWindow.setAlwaysOnTop(true, 'screen-saver', 1)
-    mainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
-    // Dock visibility is handled at startup (index.ts) and via renderer sync
-    // (settings.ts); the window's own show event must not force it back on.
+    // The panel type is what keeps it over fullscreen apps; transforming the
+    // process type would only hide the Dock icon. Dock visibility is handled
+    // at startup (index.ts) and via renderer sync (settings.ts).
+    mainWindow.setVisibleOnAllWorkspaces(true, {
+      visibleOnFullScreen: true,
+      skipTransformProcessType: true
+    })
     applyContentProtection(mainWindow)
 
     // Reclaim top position when other apps steal it

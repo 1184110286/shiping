@@ -247,6 +247,7 @@ The app is designed to be invisible to screen-sharing software:
 - `BrowserWindow` options: `transparent: true`, `frame: false`, `skipTaskbar: true`
 - `setContentProtection(true)` prevents screen capture of the window itself
 - `setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true, skipTransformProcessType: true })`
+- macOS: the main window and the toolbar are `type: 'panel'`. A regular app's window shows over another app's fullscreen Space only if its Spaces flags were set while the app had no Dock icon, and the Dock icon is on by default (`hideDockIcon`); a non-activating panel is let in either way. Clicking it still activates the app, so typing and dialogs work as before
 - `keepWindowInFront()` repeatedly reasserts always-on-top for 5 seconds after show
 - `showInactive()` on macOS/Windows to avoid stealing focus
 

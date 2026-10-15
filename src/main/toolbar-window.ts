@@ -40,6 +40,8 @@ export function createToolbarWindow(parent: BrowserWindow): void {
     focusable: false,
     alwaysOnTop: true,
     skipTaskbar: true,
+    // Over other apps' fullscreen Spaces, like the main window (see main-window.ts)
+    ...(process.platform === 'darwin' && { type: 'panel' }),
     show: false,
     parent,
     webPreferences: {
@@ -55,7 +57,10 @@ export function createToolbarWindow(parent: BrowserWindow): void {
   toolbarWindow.setMenuBarVisibility(false)
   toolbarWindow.setOpacity(toolbarOpacity)
   toolbarWindow.setAlwaysOnTop(true, 'screen-saver', 2)
-  toolbarWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
+  toolbarWindow.setVisibleOnAllWorkspaces(true, {
+    visibleOnFullScreen: true,
+    skipTransformProcessType: true
+  })
   toolbarWindow.setContentProtection(true)
 
   parent.on('move', syncToolbarBounds)
