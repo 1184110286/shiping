@@ -25,6 +25,11 @@ interface Picker {
 const PICKER_RELATIVE_LEVEL = 200
 /** Last resort against a picker that never answers: it covers every screen */
 const PICKER_TIMEOUT = 5 * 60 * 1000
+/**
+ * A picker stays hidden until its page says it is painted, and the main window
+ * is hidden meanwhile: if none shows by then, cancel, or the app just vanishes
+ */
+const PICKER_SHOW_TIMEOUT = 10 * 1000
 
 /** Set before the first await, so a second request cannot slip in while the screens are captured */
 let active = false
@@ -72,8 +77,13 @@ export async function pickCaptureRegion(
       finish(null)
       return
     }
-    timeout = setTimeout(() => finish(null), PICKER_TIMEOUT)
+    armTimeout(PICKER_SHOW_TIMEOUT)
   })
+}
+
+function armTimeout(ms: number): void {
+  if (timeout) clearTimeout(timeout)
+  timeout = setTimeout(() => finish(null), ms)
 }
 
 function createPickerWindow(display: Display): BrowserWindow {
@@ -121,7 +131,8 @@ function createPickerWindow(display: Display): BrowserWindow {
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
     window.loadURL(`${process.env['ELECTRON_RENDERER_URL']}#/region-picker`)
   } else {
-    window.loadFile(join(__dirname, '../renderer/index.html'), { hash: 'region-picker' })
+    // With the slash: `main.tsx` compares the hash as is, and loadFile adds only the `#`
+    window.loadFile(join(__dirname, '../renderer/index.html'), { hash: '/region-picker' })
   }
   return window
 }
@@ -162,6 +173,7 @@ ipcMain.on('region-picker-ready', (event) => {
   const picker = pickerOf(event.sender)
   if (!picker) return
   picker.window.show()
+  armTimeout(PICKER_TIMEOUT)
   // Keyboard goes to the screen the user is on, for Enter / Esc. Started from a
   // shortcut or the toolbar, another app is active; unless this one takes over,
   // the Enter meant to confirm would land in that app, e.g. submit an exam page

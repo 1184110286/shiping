@@ -71,7 +71,7 @@ export function createToolbarWindow(parent: BrowserWindow): void {
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
     toolbarWindow.loadURL(`${process.env['ELECTRON_RENDERER_URL']}#/toolbar`)
   } else {
-    toolbarWindow.loadFile(join(__dirname, '../renderer/index.html'), { hash: 'toolbar' })
+    toolbarWindow.loadFile(join(__dirname, '../renderer/index.html'), { hash: '/toolbar' })
   }
 }
 
