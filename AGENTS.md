@@ -370,7 +370,7 @@ Material the user wants the AI to draw on — a resume, prepared Q&A, notes — 
 `build/after-pack.mjs` signs the macOS app with a self-signed certificate (`Interview Coder CN`, SHA-1 in `CERT_SHA1`). electron-builder's own signing is off (`mac.identity: null`): it only takes a certificate macOS trusts:
 - The signature is what makes system audio work, not only a Gatekeeper matter. Without one bound to the bundle (Electron's linker signature only), TCC identifies the app by its executable path when a helper asks on its behalf, so the audio service is refused the screen capture behind system audio while screenshots, taken in the main process, work (#104)
 - The certificate keeps the designated requirement (`identifier "com.electron.app" and certificate leaf = H"…"`) the same across releases, so a user grants 屏幕与系统音频录制 once. An ad-hoc signature would tie it to each build's hash. A new certificate or a new `appId` makes every user grant it again
-- CI imports the certificate from the `MAC_CERT_P12_BASE64` / `MAC_CERT_PASSWORD` secrets into a temporary keychain (`MAC_SIGN_KEYCHAIN`) and fails without it; a local build without it is signed ad-hoc
+- CI imports the certificate from the `MAC_CERT_P12_BASE64` / `MAC_CERT_PASSWORD` secrets into a temporary keychain (`MAC_SIGN_KEYCHAIN`), which must be on the user search list: codesign on macOS 26 finds no identity elsewhere, `--keychain` or not. The build fails without the certificate; a local build without it is signed ad-hoc
 - To see what TCC decides: `log stream --predicate 'subsystem == "com.apple.TCC" OR process == "replayd"'`, then `AUTHREQ_SUBJECT` / `AUTHREQ_RESULT` for the process in question
 
 ### Mouse Click-through
