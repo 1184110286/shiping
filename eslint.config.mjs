@@ -28,5 +28,12 @@ export default tseslint.config(
       '@typescript-eslint/explicit-function-return-type': 'off'
     }
   },
+  {
+    // Plain JS hooks electron-builder loads, which cannot declare return types
+    files: ['build/**/*.mjs'],
+    rules: {
+      '@typescript-eslint/explicit-function-return-type': 'off'
+    }
+  },
   eslintConfigPrettier
 )

@@ -8,9 +8,10 @@ import type { AvailableUpdate } from '../shared/update'
  * up mid-interview would show on the shared screen.
  *
  * Windows downloads and installs it through electron-updater once the user
- * asks. The macOS build is unsigned, which Squirrel.Mac cannot update, so
- * there the check only reads the Latest release and points to its page. Both
- * follow Latest alone: a pre-release is never offered.
+ * asks. The macOS build has no Apple signature, only a self-signed one, and
+ * updating it through Squirrel.Mac has never been tried, so there the check
+ * only reads the Latest release and points to its page. Both follow Latest
+ * alone: a pre-release is never offered.
  */
 
 const REPO = 'ooboqoo/interview-coder-cn'
