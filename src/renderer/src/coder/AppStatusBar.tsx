@@ -1,9 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Pointer, PointerOff, OctagonX, MessageCircle } from 'lucide-react'
 import { useSolutionStore } from '@/lib/store/solution'
 import { useShortcutsStore } from '@/lib/store/shortcuts'
 import { useAppStore } from '@/lib/store/app'
 import { useSettingsStore } from '@/lib/store/settings'
+import { formatDuration } from '@/lib/utils/duration'
+import { useElapsed } from '@/lib/use-elapsed'
 import ShortcutRenderer from '@/components/ShortcutRenderer'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogTitle, DialogContent, DialogFooter } from '@/components/ui/dialog'
@@ -14,13 +16,23 @@ export function AppStatusBar() {
     isLoading: isReceivingSolution,
     setIsLoading,
     screenshotData,
-    solutionChunks
+    solutionChunks,
+    setDurationMs
   } = useSolutionStore()
   const { ignoreMouse } = useAppStore()
   const { shortcuts } = useShortcutsStore()
   const hideShortcutHints = useSettingsStore((state) => state.hideShortcutHints)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [questionInput, setQuestionInput] = useState('')
+  const elapsed = useElapsed()
+
+  useEffect(() => {
+    // Main measures the request and reports once, so nothing ticks here
+    window.api.onSolutionDuration((ms) => setDurationMs(ms))
+    return () => {
+      window.api.removeSolutionDurationListener()
+    }
+  }, [setDurationMs])
 
   const handleStop = () => {
     setIsLoading(false)
@@ -64,6 +76,9 @@ export function AppStatusBar() {
           <div className="flex items-center space-x-2">
             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-r-2 border-[currentColor]"></div>
             <span className="text-sm">正在生成...</span>
+            {elapsed !== null && (
+              <span className="text-sm tabular-nums opacity-70">{formatDuration(elapsed)}</span>
+            )}
             <div className="fixed bottom-4 left-1/2 -translate-x-1/2 flex justify-center z-50 pointer-events-none">
               <Button
                 variant="secondary"
@@ -79,24 +94,32 @@ export function AppStatusBar() {
               </Button>
             </div>
           </div>
-        ) : hasActiveConversation && !hideShortcutHints ? (
+        ) : (
           <div className="flex items-center space-x-2 pointer-events-none opacity-50 text-sm gap-1">
-            <span>
-              <ShortcutRenderer
-                shortcut={shortcuts.appendScreenshot.key}
-                className="inline-block scale-75 text-xs border border-current bg-transparent py-0 px-1 ml-1"
-              />
-              追加截图
-            </span>
-            <span>
-              <ShortcutRenderer
-                shortcut={shortcuts.takeScreenshot.key}
-                className="inline-block scale-75 text-xs border border-current bg-transparent py-0 px-1"
-              />
-              新开对话
-            </span>
+            {/* Next to 正在生成 the number reads as elapsed time; on its own it needs a label */}
+            {elapsed !== null && (
+              <span className="tabular-nums">用时 {formatDuration(elapsed)}</span>
+            )}
+            {hasActiveConversation && !hideShortcutHints && (
+              <>
+                <span>
+                  <ShortcutRenderer
+                    shortcut={shortcuts.appendScreenshot.key}
+                    className="inline-block scale-75 text-xs border border-current bg-transparent py-0 px-1 ml-1"
+                  />
+                  追加截图
+                </span>
+                <span>
+                  <ShortcutRenderer
+                    shortcut={shortcuts.takeScreenshot.key}
+                    className="inline-block scale-75 text-xs border border-current bg-transparent py-0 px-1"
+                  />
+                  新开对话
+                </span>
+              </>
+            )}
           </div>
-        ) : null}
+        )}
       </div>
       <div className="flex items-center space-x-4 select-none">
         {/* Follow-up Question Button */}

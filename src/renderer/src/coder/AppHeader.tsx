@@ -5,9 +5,6 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { useAppStore } from '@/lib/store/app'
 import { useSettingsStore, type AppMode } from '@/lib/store/settings'
-import { useSolutionStore } from '@/lib/store/solution'
-import { formatDuration } from '@/lib/utils/duration'
-import { useElapsed } from '@/lib/use-elapsed'
 import { MODE_NAMES, MODE_PATHS } from '@/lib/use-mode-page'
 
 const TITLES: Record<AppMode, string> = {
@@ -28,21 +25,11 @@ export function AppHeader({ mode }: { mode: AppMode }) {
     return state.scenes.find((s) => s.id === id)?.name
   })
   const context = [sceneName, model].filter(Boolean).join(' · ')
-  const elapsed = useElapsed()
-  const setDurationMs = useSolutionStore((state) => state.setDurationMs)
   const [appVersion, setAppVersion] = useState('')
 
   useEffect(() => {
     window.api.getAppVersion().then(setAppVersion)
   }, [])
-
-  useEffect(() => {
-    // Main measures the request and reports once, so nothing ticks here
-    window.api.onSolutionDuration((ms) => setDurationMs(ms))
-    return () => {
-      window.api.removeSolutionDurationListener()
-    }
-  }, [setDurationMs])
 
   return (
     <div id="app-header" className="flex items-center gap-1">
@@ -50,41 +37,44 @@ export function AppHeader({ mode }: { mode: AppMode }) {
         Flex shrink decides what survives a narrow window. The higher the
         factor, the sooner that item is squeezed, and it disappears once it
         reaches `min-width: 0`:
-          title    flex: 1 8 auto  compressed first, being the least informative
+          title    flex: 0 8 auto  compressed first, being the least informative
           context  flex: 0 4 auto  next (scene · model); still in the settings page
-          timer    shrink-0        never compressed — it exists nowhere else
+          switch   shrink-0        never compressed — it is how the page is changed
+        The two `ml-auto` (switch, context) split the free space between them,
+        centering the switch between the title and the context.
+        Only the title gives way, not the version or the badge after it: as a
+        `minmax(0, auto)` column it adds nothing to the group's minimum width.
       */}
-      {mode === 'screenshot' && elapsed !== null && (
-        <span className="shrink-0 whitespace-nowrap pl-2 text-xs tabular-nums opacity-70 pointer-events-none">
-          {formatDuration(elapsed)}
-        </span>
-      )}
       <div
-        className="flex min-w-0 items-baseline justify-center gap-1.5 px-2"
-        style={{ flex: '1 8 auto', minWidth: 0 }}
+        className="grid grid-flow-col grid-cols-[minmax(0,auto)] items-baseline gap-1.5 whitespace-nowrap pl-3"
+        style={{ flex: '0 8 auto' }}
       >
         <span className="truncate">{TITLES[mode]}</span>
-        {appVersion && <span className="shrink-0 text-[10px] opacity-60">v{appVersion}</span>}
+        {appVersion && <span className="text-[10px] opacity-60">v{appVersion}</span>}
         {update && (
           // Details and the download are on the help page
           <button
-            className="shrink-0 cursor-pointer rounded-sm bg-emerald-600 px-1 text-[10px] leading-4 text-white [-webkit-app-region:no-drag] hover:bg-emerald-500"
+            className="cursor-pointer rounded-sm bg-emerald-600 px-1 text-[10px] leading-4 text-white [-webkit-app-region:no-drag] hover:bg-emerald-500"
             onClick={() => navigate('/help')}
           >
             有新版本
           </button>
         )}
       </div>
+      <ModeSwitch
+        mode={mode}
+        className={cn('ml-auto', ignoreMouse && 'pointer-events-none')}
+        onSwitch={(next) => navigate(MODE_PATHS[next])}
+      />
       {context && (
         <span
-          className="min-w-0 truncate pr-2 text-[10px] opacity-60 pointer-events-none"
+          className="ml-auto min-w-0 truncate pr-2 text-[10px] opacity-60 pointer-events-none"
           style={{ flex: '0 4 auto', minWidth: 0 }}
         >
           {context}
         </span>
       )}
       <div className={`actions flex items-center ${ignoreMouse ? 'pointer-events-none' : ''}`}>
-        <ModeSwitch mode={mode} onSwitch={(next) => navigate(MODE_PATHS[next])} />
         <Button
           variant="ghost"
           className="size-8 cursor-pointer hover:opacity-50"
@@ -112,13 +102,27 @@ export function AppHeader({ mode }: { mode: AppMode }) {
 }
 
 /** Two icon buttons, the current mode lit; no `title`, which would draw outside content protection */
-function ModeSwitch({ mode, onSwitch }: { mode: AppMode; onSwitch: (mode: AppMode) => void }) {
+function ModeSwitch({
+  mode,
+  className,
+  onSwitch
+}: {
+  mode: AppMode
+  className?: string
+  onSwitch: (mode: AppMode) => void
+}) {
   const items: { value: AppMode; Icon: typeof Camera }[] = [
     { value: 'screenshot', Icon: Camera },
     { value: 'conversation', Icon: MessagesSquare }
   ]
   return (
-    <div className="mr-1 flex items-center rounded-md bg-app-chip p-0.5" aria-label="切换模式">
+    <div
+      className={cn(
+        'flex shrink-0 items-center rounded-md bg-app-chip p-0.5 [-webkit-app-region:no-drag]',
+        className
+      )}
+      aria-label="切换模式"
+    >
       {items.map(({ value, Icon }) => (
         <button
           key={value}

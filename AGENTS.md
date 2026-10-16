@@ -74,7 +74,7 @@ src/
         │   ├── index.tsx     # CoderPage layout + transcription lifecycle
         │   ├── AppHeader.tsx # Draggable title bar: mode switch, scene · model, nav buttons (shared by both modes)
         │   ├── AppContent.tsx# Screenshots gallery + markdown solution + error banner
-        │   ├── AppStatusBar.tsx    # Loading indicator, follow-up dialog, shortcut hints
+        │   ├── AppStatusBar.tsx    # Loading indicator + request timer, follow-up dialog, shortcut hints
         │   ├── TranscriptionBar.tsx # Absolute-positioned real-time transcription overlay
         │   ├── OverlayToolbar.tsx  # Contents of the toolbar window (route `/toolbar`)
         │   └── PrerequisitesChecker.tsx  # Modal for API key setup
@@ -126,7 +126,7 @@ src/
         │   ├── model-switch.ts    # changeApiBaseURL(): switch URL, toast the linked model change
         │   ├── knowledge.ts       # useKnowledgeDocs() (the list from main), per-mode usage, 字 / token formatting
         │   ├── api-profiles.ts    # ApiProfile type + factory (one saved URL / key / model set)
-        │   ├── use-elapsed.ts     # Header timer: local tick while loading, main's measured value after
+        │   ├── use-elapsed.ts     # Status bar timer: local tick while loading, main's measured value after
         │   ├── utils/
         │   │   ├── index.ts     # cn() helper, getCloneableFields()
         │   │   ├── env.ts       # isMac, platformAlt

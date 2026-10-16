@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useSolutionStore } from './store/solution'
 
 /**
- * The elapsed time to show in the header: it counts up while a request is
+ * The elapsed time to show in the status bar: it counts up while a request is
  * running and freezes on the final value once one finishes.
  *
  * The running value comes from a timer here so the number moves as the user
