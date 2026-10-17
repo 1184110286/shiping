@@ -1,7 +1,7 @@
 services:
   relay:
     build: .
-    image: interview-coder-relay
+    image: shiping-relay
     restart: unless-stopped
     ports:
       - '8787:8787'

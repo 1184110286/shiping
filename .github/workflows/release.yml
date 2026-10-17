@@ -73,9 +73,9 @@ jobs:
         with:
           draft: true
           files: |
-            dist/**/interview-coder-cn-*.dmg
-            dist/**/interview-coder-cn-*.exe
-            dist/**/interview-coder-cn-*.exe.blockmap
+            dist/**/shiping-*.dmg
+            dist/**/shiping-*.exe
+            dist/**/shiping-*.exe.blockmap
             dist/**/latest.yml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

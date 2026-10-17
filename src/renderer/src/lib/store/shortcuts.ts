@@ -177,6 +177,7 @@ export const useShortcutsStore = create<ShortcutsStore>()(
       }
     }),
     {
+      // From before the rename to 识屏; a new key would lose everyone's bindings
       name: 'interview-coder-shortcuts',
       version: 5,
       migrate: (state: unknown, version: number) => {

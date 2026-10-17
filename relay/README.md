@@ -50,11 +50,11 @@ npm ci --omit=dev
 RELAY_KEY=<密钥> node server.mjs
 ```
 
-长期运行可以交给 systemd，新建 `/etc/systemd/system/ic-relay.service`（路径和用户按实际改）：
+长期运行可以交给 systemd，新建 `/etc/systemd/system/shiping-relay.service`（路径和用户按实际改）：
 
 ```ini
 [Unit]
-Description=Interview Coder relay
+Description=Shiping relay
 After=network.target
 
 [Service]
@@ -68,8 +68,8 @@ WantedBy=multi-user.target
 ```
 
 ```bash
-systemctl daemon-reload && systemctl enable --now ic-relay
-journalctl -u ic-relay -f
+systemctl daemon-reload && systemctl enable --now shiping-relay
+journalctl -u shiping-relay -f
 ```
 
 ### 可选环境变量
@@ -131,7 +131,7 @@ journalctl -u caddy -f        # 看到 certificate obtained successfully 即可
 
 ### 方式二：Nginx + certbot
 
-服务器上已经有 Nginx 时用这种。新建 `/etc/nginx/conf.d/ic-relay.conf`：
+服务器上已经有 Nginx 时用这种。新建 `/etc/nginx/conf.d/shiping-relay.conf`：
 
 ```nginx
 server {

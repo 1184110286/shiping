@@ -21,7 +21,7 @@ export interface ConversationRecord {
 const pad = (n: number) => String(n).padStart(2, '0')
 
 function getSaveDir(): string {
-  return settings.conversationSaveDir || join(app.getPath('documents'), 'InterviewCoder')
+  return settings.conversationSaveDir || join(app.getPath('documents'), 'Shiping')
 }
 
 function fileName(startedAt: number): string {

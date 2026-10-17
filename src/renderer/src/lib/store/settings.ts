@@ -315,7 +315,7 @@ interface Settings {
   conversationTranscriptHidden: boolean
   /** 对话模式: 把每段对话自动保存为 Markdown 文件 */
   conversationAutoSave: boolean
-  /** 对话记录保存目录；为空时用 文档/InterviewCoder */
+  /** 对话记录保存目录；为空时用 文档/Shiping */
   conversationSaveDir: string
 }
 
@@ -757,6 +757,7 @@ export const useSettingsStore = create<SettingsStore>()(
       }
     }),
     {
+      // From before the rename to 识屏; a new key would lose everyone's settings
       name: 'interview-coder-settings',
       version: 8,
       migrate: (persisted, version) => {

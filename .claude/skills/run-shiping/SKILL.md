@@ -1,10 +1,10 @@
 ---
-name: run-interview-coder-cn
-description: Build, run, and drive the interview-coder-cn Electron app (截屏解题助手). Use when asked to start or run the app, take a screenshot of it, test or verify a change in the real app (截图模式 answers, 思考过程, 追问, 追加截图, 对话模式 hints), or click around its UI with a real AI model.
+name: run-shiping
+description: Build, run, and drive the shiping Electron app (识屏, formerly interview-coder-cn). Use when asked to start or run the app, take a screenshot of it, test or verify a change in the real app (截图模式 answers, 思考过程, 追问, 追加截图, 对话模式 hints), or click around its UI with a real AI model.
 ---
 
-interview-coder-cn is an Electron overlay app. Agents drive the **built** app with
-`.claude/skills/run-interview-coder-cn/driver.mjs`: a Playwright `_electron` driver that listens
+shiping (识屏) is an Electron overlay app. Agents drive the **built** app with
+`.claude/skills/run-shiping/driver.mjs`: a Playwright `_electron` driver that listens
 for commands on `localhost:47123` (`curl`), takes screenshots, and talks to the real AI platform
 configured in `.env`. Each launch gets a throwaway userData dir, so your own settings are never
 touched.
@@ -46,12 +46,12 @@ Start the driver in the background, wait for it, launch the app. `MODEL` / `API_
 `API_BASE_URL` line containing `openrouter` (commented or not) plus the `API_KEY` line after it:
 
 ```bash
-MODEL=openai/gpt-6-sol node .claude/skills/run-interview-coder-cn/driver.mjs > /tmp/run-interview-coder-cn-driver.log 2>&1 &
+MODEL=openai/gpt-6-sol node .claude/skills/run-shiping/driver.mjs > /tmp/run-shiping-driver.log 2>&1 &
 until curl -s localhost:47123/ping >/dev/null; do sleep 0.3; done
 curl -s 'localhost:47123/launch?a=openrouter'
 ```
 
-`launch` answers with the header (`截屏解题 … 解算法题 · openai/gpt-6-sol …`) - check the model
+`launch` answers with the header (`截屏解答 … 解算法题 · openai/gpt-6-sol …`) - check the model
 there.
 
 **截图模式** - put a known problem on screen, screenshot it, follow the answer, ask a follow-up:
@@ -87,8 +87,8 @@ plain text:
 curl -s localhost:47123/quit
 ```
 
-Screenshots land in `$TMPDIR/run-interview-coder-cn/shots/` (`SCREENSHOT_DIR` overrides); the
-app's stdout/stderr in `$TMPDIR/run-interview-coder-cn/app.log`. Open the screenshots and look.
+Screenshots land in `$TMPDIR/run-shiping/shots/` (`SCREENSHOT_DIR` overrides); the
+app's stdout/stderr in `$TMPDIR/run-shiping/app.log`. Open the screenshots and look.
 
 | command (`curl -s 'localhost:47123/<cmd>?a=<arg>'`) | what it does                                                                         |
 | --------------------------------------------------- | ------------------------------------------------------------------------------------ |
@@ -114,7 +114,7 @@ Pass Chinese or spaces with `--get --data-urlencode 'a=…'`.
 ## Run (human path)
 
 `npm run dev` (README) opens the app with hot reload on your real settings
-(`~/Library/Application Support/interview-coder-cn`). Not used by agents.
+(`~/Library/Application Support/shiping`). Not used by agents.
 
 ## Test
 
@@ -131,7 +131,7 @@ Both exit 0 on a clean tree.
 
 - **Settings live in the renderer's localStorage and win over `.env`.** The driver passes
   `--user-data-dir=<fresh dir>` (Electron honors it), so every launch starts from `.env` defaults
-  and the real `~/Library/Application Support/interview-coder-cn` is never read or written.
+  and the real `~/Library/Application Support/shiping` is never read or written.
 - **The app reads `.env` itself** (dotenv, cwd = repo root). `MODEL="gpt-5-mini"` there applies
   unless the driver gets `MODEL=`; dotenv never overrides variables already set.
 - **Global shortcuts can't be pressed from Playwright.** `action` calls

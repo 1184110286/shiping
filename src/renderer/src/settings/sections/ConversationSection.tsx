@@ -158,7 +158,7 @@ export function ConversationSection({
           {conversationAutoSave && (
             <SaveDirField
               dir={conversationSaveDir}
-              placeholder="默认: 文档/InterviewCoder"
+              placeholder="默认: 文档/Shiping"
               pick={window.api.selectConversationDir}
               onChange={(dir) => updateSetting('conversationSaveDir', dir)}
             />

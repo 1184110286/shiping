@@ -1,7 +1,7 @@
 {
-  "name": "interview-coder-cn",
+  "name": "shiping",
   "version": "3.3.0",
-  "description": "截屏解题助手：面试和笔试的隐身 AI 助手，截图实时解题，听对话实时出提示",
+  "description": "识屏 Shiping：截屏 + AI 理解，屏幕上的内容截一下就有解答，听对话实时出提示；屏幕共享时隐身",
   "main": "./out/main/index.js",
   "devEngines": {
     "packageManager": {
@@ -25,22 +25,22 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ooboqoo/interview-coder-cn.git"
+    "url": "git+https://github.com/ooboqoo/shiping.git"
   },
   "keywords": [
-    "解题助手",
-    "面试",
-    "在线考试",
+    "识屏",
     "截屏",
-    "coding interview",
-    "LeetCode"
+    "截图问答",
+    "AI",
+    "视觉模型",
+    "屏幕识别"
   ],
   "author": "Gavin Wang<ooboqoo@gmail.com>",
   "license": "CC BY-NC 4.0",
   "bugs": {
-    "url": "https://github.com/ooboqoo/interview-coder-cn/issues"
+    "url": "https://github.com/ooboqoo/shiping/issues"
   },
-  "homepage": "https://github.com/ooboqoo/interview-coder-cn#readme",
+  "homepage": "https://github.com/ooboqoo/shiping#readme",
   "dependencies": {
     "@ai-sdk/openai-compatible": "^1.0.10",
     "@electron-toolkit/preload": "^3.0.2",

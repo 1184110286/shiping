@@ -48,10 +48,10 @@ export default function HelpPage() {
         <HelpSection Icon={Info} title="简介" description={appVersion && `当前版本 v${appVersion}`}>
           <UpdateNotice />
           <p className="text-gray-700">
-            欢迎使用截屏解题助手！无论是 编程面试 / 在线考试 还是其他解题场景，
-            该工具都可以帮助您快速截图，分析屏幕内容，并给出解答建议。 您可以访问本项目{' '}
+            欢迎使用识屏（原「截屏解题助手」）！屏幕上的题目、代码、报错、图表、外文资料，
+            按下快捷键截图，AI 就会理解屏幕内容并给出解答。 您可以访问本项目{' '}
             <a
-              href="https://github.com/ooboqoo/interview-coder-cn/wiki"
+              href="https://github.com/ooboqoo/shiping/wiki"
               target="_blank"
               rel="noreferrer"
               className="inline-flex items-center gap-1 text-blue-600 hover:underline"
@@ -129,7 +129,7 @@ export default function HelpPage() {
               <p className="text-gray-700">
                 在{' '}
                 <a
-                  href="https://github.com/ooboqoo/interview-coder-cn/wiki"
+                  href="https://github.com/ooboqoo/shiping/wiki"
                   target="_blank"
                   rel="noreferrer"
                   className="text-blue-600 hover:underline"
@@ -144,7 +144,7 @@ export default function HelpPage() {
               <p className="text-gray-700">
                 在{' '}
                 <a
-                  href="https://github.com/ooboqoo/interview-coder-cn/issues"
+                  href="https://github.com/ooboqoo/shiping/issues"
                   target="_blank"
                   rel="noreferrer"
                   className="text-blue-600 hover:underline"

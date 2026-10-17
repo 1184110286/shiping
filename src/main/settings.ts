@@ -94,7 +94,7 @@ export const settings = {
   conversationMinChars: 4,
   /** 对话模式: keep each conversation as a Markdown file, see save-conversation.ts */
   conversationAutoSave: false,
-  /** Where the conversations go; blank means Documents/InterviewCoder */
+  /** Where the conversations go; blank means Documents/Shiping */
   conversationSaveDir: '',
   /** Kept in sync with the renderer so the overlay toolbar can match the main window */
   opacity: 0.8,

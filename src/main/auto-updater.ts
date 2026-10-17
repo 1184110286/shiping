@@ -14,7 +14,7 @@ import type { AvailableUpdate } from '../shared/update'
  * alone: a pre-release is never offered.
  */
 
-const REPO = 'ooboqoo/interview-coder-cn'
+const REPO = 'ooboqoo/shiping'
 // The app is often left running for days, on macOS especially
 const CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000
 
@@ -44,13 +44,15 @@ function compareVersions(a: string, b: string): number {
 }
 
 const LATEST_URL = `https://github.com/${REPO}/releases/latest`
+const TAG_URL = /\/releases\/tag\/([^/?#]+)$/
 
 /**
  * Where the `releases/latest` page redirects (`…/releases/tag/v3.2.2`), which
  * skips drafts and pre-releases. Not the REST API: without a token it allows
  * 60 requests an hour per IP, and a proxy exit shared by many users runs out
  * of them. Electron's `net` goes through the system proxy, which GitHub often
- * needs from China.
+ * needs from China. A renamed repository first redirects to its new
+ * `releases/latest`, which redirects again to the tag.
  */
 function getLatestReleaseUrl(): Promise<string | null> {
   return new Promise((resolve, reject) => {
@@ -62,7 +64,11 @@ function getLatestReleaseUrl(): Promise<string | null> {
       finish()
       request.abort()
     }
-    request.on('redirect', (_status, _method, redirectUrl) => settle(() => resolve(redirectUrl)))
+    let hops = 0
+    request.on('redirect', (_status, _method, redirectUrl) => {
+      if (!TAG_URL.test(redirectUrl) && ++hops < 3) request.followRedirect()
+      else settle(() => resolve(redirectUrl))
+    })
     // No redirect: nothing released, or an error page
     request.on('response', () => settle(() => resolve(null)))
     request.on('error', (err) => settle(() => reject(err)))
@@ -75,7 +81,7 @@ function getLatestReleaseUrl(): Promise<string | null> {
 async function checkLatestRelease(): Promise<void> {
   try {
     const url = await getLatestReleaseUrl()
-    const tag = url && /\/releases\/tag\/([^/?#]+)$/.exec(url)?.[1]
+    const tag = url && TAG_URL.exec(url)?.[1]
     if (!url || !tag) return
     const version = decodeURIComponent(tag).replace(/^v/, '')
     if (compareVersions(version, app.getVersion()) <= 0) return

@@ -8,7 +8,7 @@ import { useSettingsStore, type AppMode } from '@/lib/store/settings'
 import { MODE_NAMES, MODE_PATHS } from '@/lib/use-mode-page'
 
 const TITLES: Record<AppMode, string> = {
-  screenshot: '截屏解题',
+  screenshot: '截屏解答',
   conversation: '对话提示'
 }
 

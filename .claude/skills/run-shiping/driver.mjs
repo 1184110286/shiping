@@ -1,9 +1,9 @@
-// Drives the built interview-coder-cn Electron app through Playwright's _electron.
+// Drives the built shiping (识屏) Electron app through Playwright's _electron.
 // Agent tooling, not product code: see SKILL.md next to this file.
 /* eslint-disable @typescript-eslint/explicit-function-return-type -- plain JS, as in .ts files */
 //
 // Commands go over HTTP so they work without tmux:
-//   node .claude/skills/run-interview-coder-cn/driver.mjs &
+//   node .claude/skills/run-shiping/driver.mjs &
 //   curl -s 'localhost:47123/launch?a=openrouter'
 import { _electron as electron } from 'playwright-core'
 import { spawnSync } from 'node:child_process'
@@ -13,7 +13,7 @@ import * as os from 'node:os'
 import * as path from 'node:path'
 
 const APP_DIR = path.resolve(import.meta.dirname, '../../..')
-const RUN_DIR = process.env.RUN_DIR || path.join(os.tmpdir(), 'run-interview-coder-cn')
+const RUN_DIR = process.env.RUN_DIR || path.join(os.tmpdir(), 'run-shiping')
 const SHOT_DIR = process.env.SCREENSHOT_DIR || path.join(RUN_DIR, 'shots')
 const LOG_FILE = path.join(RUN_DIR, 'app.log')
 const PORT = Number(process.env.DRIVER_PORT || 47123)

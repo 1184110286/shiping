@@ -28,7 +28,7 @@ function createProvider(profile: ApiProfile) {
   // deltas) as reasoning stream parts, which @ai-sdk/openai drops. It has no
   // default base URL, so an empty one means OpenAI here as everywhere else
   return createOpenAICompatible({
-    name: 'interview-coder-cn',
+    name: 'shiping',
     baseURL: profile.apiBaseURL.trim() || DEFAULT_API_BASE_URL,
     apiKey: profile.apiKey,
     headers: buildRequestHeaders(profile.apiKey, profile.apiHeaders),

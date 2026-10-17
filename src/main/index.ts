@@ -1,4 +1,5 @@
 import 'dotenv/config'
+import './legacy-name'
 import { app, BrowserWindow, desktopCapturer, globalShortcut, session } from 'electron'
 
 type AbortLikeError = {

@@ -80,7 +80,7 @@ export function ScreenshotSection({
           {screenshotAutoSave && (
             <SaveDirField
               dir={screenshotDir}
-              placeholder="默认: 图片/InterviewCoder"
+              placeholder="默认: 图片/Shiping"
               pick={window.api.selectScreenshotDir}
               onChange={(dir) => updateSetting('screenshotDir', dir)}
             />

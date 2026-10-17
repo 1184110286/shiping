@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-**Interview Coder CN** (截屏解题助手) is a desktop application that captures screenshots of on-screen problems (coding challenges, exam questions, or anything else) and uses AI (vision models) to generate solutions in real-time. The window is invisible to screen-sharing software, making it suitable for use during coding interviews and online assessments.
+**识屏 Shiping** (package `shiping`; called 截屏解题助手 / interview-coder-cn until 2026-10, see Legacy Name) is a desktop application that captures screenshots of whatever is on screen (coding challenges, exam questions, code, error messages, charts, foreign-language text, or anything else) and uses AI (vision models) to answer about it in real-time. The window is invisible to screen-sharing software, so it stays usable while the screen is shared.
 
 Key capabilities:
 - Global shortcuts trigger screenshot capture → AI analysis → streamed solution display
@@ -35,6 +35,7 @@ Key capabilities:
 src/
 ├── main/                    # Electron main process
 │   ├── index.ts             # App entry: lifecycle, error handling, app.whenReady()
+│   ├── legacy-name.ts       # Imported first: moves the userData folder named after the old package name
 │   ├── main-window.ts       # BrowserWindow creation (frameless, transparent, always-on-top)
 │   ├── toolbar-window.ts    # Overlay toolbar window: bounds/visibility/opacity glued to main window
 │   ├── shortcuts.ts         # Global shortcuts registration + 截图模式 AI streaming orchestration (largest file)
@@ -325,7 +326,7 @@ Both windows are created with `resizable: false` — toggling Electron's native 
 - The hint panel scrolls each new card to its top and does not follow the stream. The newest card keeps a panel's height of room under it (`last:min-h-full`), else a short one stops at the bottom edge showing one line. A finished card that runs past the bottom pages down once by itself (`revealRest()`), unless the user scrolled since: paging by hand is easy to spot on a call
 - Each request sends the recent sentences as context (20 sentences / 1500 chars) plus the ones the hint is for; earlier hints are not sent back, so requests stay small
 - The preset prompts ask for 「（无需回应）」 (`NO_REPLY`) when nothing needs an answer; the page dims those cards
-- 「保存对话记录到本地」 (`conversationAutoSave`, off by default): `save-conversation.ts` writes the whole conversation as Markdown to `对话记录_<start time>.md` in `conversationSaveDir` (blank = Documents/InterviewCoder), rewritten 1.5s after a change. A clear starts a new file, a pending save is flushed on clear and (synchronously) on `will-quit`, and turning it on mid-conversation saves what is there through `onSettingsChanged()`. Failed / withdrawn / 「（无需回应）」 hints are left out
+- 「保存对话记录到本地」 (`conversationAutoSave`, off by default): `save-conversation.ts` writes the whole conversation as Markdown to `对话记录_<start time>.md` in `conversationSaveDir` (blank = Documents/Shiping), rewritten 1.5s after a change. A clear starts a new file, a pending save is flushed on clear and (synchronously) on `will-quit`, and turning it on mid-conversation saves what is there through `onSettingsChanged()`. Failed / withdrawn / 「（无需回应）」 hints are left out
 
 ### 资料库 (Knowledge)
 
@@ -386,12 +387,22 @@ What the mode pages show, mirrored read-only to a phone's browser (`src/main/mob
 `src/main/auto-updater.ts` checks at startup and every 6 hours, and reports a newer release with `update-status`. It is never a native dialog or a system notification: those are drawn outside content protection, so one popping up mid-interview would show on the shared screen
 - Shown inside the main window only: a 「有新版本」 badge after the version in `AppHeader`, leading to the help page, where `UpdateNotice` holds the details and the button
 - Windows: electron-updater with `autoDownload = false`. The user starts the download and the restart; a finished download also installs on quit (`autoInstallOnAppQuit`)
-- macOS: no Apple signature (see macOS Signing), and Squirrel.Mac was never tried with it. Main reads the tag that github.com/…/releases/latest redirects to with `net.request` (system proxy), and the card links to the release page. Not the REST API: its 60 unauthenticated requests an hour per IP run out on a shared proxy exit
+- macOS: no Apple signature (see macOS Signing), and Squirrel.Mac was never tried with it. Main reads the tag that github.com/…/releases/latest redirects to with `net.request` (system proxy), following the extra hop a renamed repository adds, and the card links to the release page. v3.3.0 stops at that first hop, so its macOS users get no notice once the repository is renamed. Not the REST API: its 60 unauthenticated requests an hour per IP run out on a shared proxy exit
 - Both follow Latest only, never a pre-release: a release reaches users once it is promoted to Latest. A failed check stays silent
+
+### Legacy Name
+
+The app was renamed from 截屏解题助手 (`interview-coder-cn`) to 识屏 (`shiping`) in 2026-10. A few things keep the old name, because changing them would cost every existing user something:
+- `appId` (`com.electron.app`): macOS TCC grants and the Windows installer's upgrade-in-place (its GUID) both key on it
+- The macOS signing certificate's name (see macOS Signing): a new certificate means a new grant
+- The zustand `persist` keys `interview-coder-settings` / `interview-coder-shortcuts`: localStorage is looked up by them
+- Electron names userData after the package (`app.name`), so `legacy-name.ts` renames the old `interview-coder-cn` folder on the first start under the new name, before anything opens it; if the rename fails, the old folder is used in place. It also deletes the old Windows updater cache (`%LOCALAPPDATA%/interview-coder-cn-updater`, which keeps a whole installer)
+- A Windows install upgraded in place stays in its old folder (`Programs/interview-coder-cn`): the NSIS installer reuses the registered `InstallLocation`
+- GitHub redirects the old repository URL, which keeps old clients' update checks working, as long as no new repository takes the old name
 
 ### macOS Signing
 
-`build/after-pack.mjs` signs the macOS app with a self-signed certificate (`Interview Coder CN`, SHA-1 in `CERT_SHA1`). electron-builder's own signing is off (`mac.identity: null`): it only takes a certificate macOS trusts:
+`build/after-pack.mjs` signs the macOS app with a self-signed certificate (`Interview Coder CN`, named before the rename; SHA-1 in `CERT_SHA1`). electron-builder's own signing is off (`mac.identity: null`): it only takes a certificate macOS trusts:
 - The signature is what makes system audio work, not only a Gatekeeper matter. Without one bound to the bundle (Electron's linker signature only), TCC identifies the app by its executable path when a helper asks on its behalf, so the audio service is refused the screen capture behind system audio while screenshots, taken in the main process, work (#104)
 - The certificate keeps the designated requirement (`identifier "com.electron.app" and certificate leaf = H"…"`) the same across releases, so a user grants 屏幕与系统音频录制 once. An ad-hoc signature would tie it to each build's hash. A new certificate or a new `appId` makes every user grant it again
 - CI imports the certificate from the `MAC_CERT_P12_BASE64` / `MAC_CERT_PASSWORD` secrets into a temporary keychain (`MAC_SIGN_KEYCHAIN`), which must be on the user search list: codesign on macOS 26 finds no identity elsewhere, `--keychain` or not. The build fails without the certificate; a local build without it is signed ad-hoc

@@ -20,7 +20,7 @@ export function ApiHeadersField() {
         <Textarea
           value={apiHeaders}
           onChange={(e) => updateCredential({ apiHeaders: e.target.value })}
-          placeholder={'HTTP-Referer: https://example.com\nX-Title: Interview Coder'}
+          placeholder={'HTTP-Referer: https://example.com\nX-Title: Shiping'}
           className="w-60 min-h-9 max-h-40 bg-white font-mono text-xs md:text-xs"
           spellCheck={false}
         />
