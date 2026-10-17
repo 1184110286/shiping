@@ -5,6 +5,7 @@ import { settings, getModeProfile, onSettingsChanged } from './settings'
 import { saveConversation, saveConversationSync } from './save-conversation'
 import { consumeStream, extractErrorMessage } from './stream'
 import { isTranscriptionRunning, onConversationSentence, onTranscriptionEnd } from './transcription'
+import { markMobileDirty, registerMobileSource } from './mobile-sync'
 import {
   countMeaningfulChars,
   type ConversationSnapshot,
@@ -31,6 +32,10 @@ import {
 /** How much earlier conversation goes along as context, whichever runs out first */
 const CONTEXT_UTTERANCES = 20
 const CONTEXT_CHARS = 1500
+
+/** The phones get the latest hints and what they answer, not the whole call */
+const MOBILE_HINTS = 20
+const MOBILE_UTTERANCES = 60
 
 /** How long changes gather before the record on disk is rewritten */
 const SAVE_DELAY = 1500
@@ -62,7 +67,9 @@ const streams = new Map<number, HintStream>()
  */
 const generations = new Map<number, number>()
 
+/** Tell the page, and the phones; every change to the conversation goes through here */
 function send(channel: string, ...args: unknown[]) {
+  markMobileDirty()
   const mainWindow = global.mainWindow
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send(channel, ...args)
@@ -359,6 +366,25 @@ function getSnapshot(): ConversationSnapshot {
     listening: isTranscriptionRunning('conversation')
   }
 }
+
+registerMobileSource('conversation', () => {
+  const recent = hints.slice(-MOBILE_HINTS)
+  const from = recent[0]?.fromId ?? 0
+  return {
+    utterances: utterances
+      .filter((u) => u.id >= from)
+      .slice(-MOBILE_UTTERANCES)
+      .map((u) => ({ ...u })),
+    hints: recent.map(({ id, fromId, toId, status, text, error }) => ({
+      id,
+      fromId,
+      toId,
+      status,
+      text,
+      error
+    }))
+  }
+})
 
 onConversationSentence(handleSentence)
 
