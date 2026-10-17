@@ -5,7 +5,7 @@ import eslintPluginReactHooks from 'eslint-plugin-react-hooks'
 import eslintPluginReactRefresh from 'eslint-plugin-react-refresh'
 
 export default tseslint.config(
-  { ignores: ['**/node_modules', '**/dist', '**/out'] },
+  { ignores: ['**/node_modules', '**/dist', '**/out', 'relay/public/vendor'] },
   tseslint.configs.recommended,
   eslintPluginReact.configs.flat.recommended,
   eslintPluginReact.configs.flat['jsx-runtime'],
@@ -29,8 +29,8 @@ export default tseslint.config(
     }
   },
   {
-    // Plain JS hooks electron-builder loads, which cannot declare return types
-    files: ['build/**/*.mjs'],
+    // Plain JS: hooks electron-builder loads, and the relay server and its phone page
+    files: ['build/**/*.mjs', 'relay/**/*.{js,mjs}'],
     rules: {
       '@typescript-eslint/explicit-function-return-type': 'off'
     }

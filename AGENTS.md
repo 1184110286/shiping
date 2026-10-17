@@ -13,6 +13,7 @@ Key capabilities:
 - Real-time speech transcription (DashScope Fun-ASR) — transcribed text is attached to screenshots when sent to AI
 - 资料库: the user's own material (resume, prepared Q&A, notes; imported from PDF / Word / Markdown / TXT or pasted) goes in front of each mode's system prompt
 - 对话模式 (conversation mode): a second page for voice interviews — the other side's sentences on the left, short AI hints on the right, no screenshots; hints come automatically when a sentence ends or on a shortcut
+- 手机同步: 截图模式's answer and 对话模式's hints mirrored read-only to a phone's browser — over the LAN (the app serves the page, scan a QR code) or through the user's own public relay (`relay/`)
 - Configurable AI provider (OpenAI, SiliconFlow, OpenRouter, or any OpenAI-compatible API)
 
 ## Tech Stack
@@ -44,6 +45,8 @@ src/
 │   ├── knowledge-parse.ts   # Text out of an imported PDF (unpdf) / .docx (mammoth) / Markdown / TXT (UTF-8, UTF-16, GBK)
 │   ├── thinking.ts          # 「关闭思考」: per-platform request-body fields + retry without them when refused
 │   ├── model-list.ts        # `listModels` IPC: a platform's `/models` list (+ SiliconFlow vision flags scraped from its public model square)
+│   ├── mobile-sync.ts       # 手机同步: builds the phone state from registered sources, LAN server (relay core in-process) + relay host client
+│   ├── raw.d.ts             # `*?raw` imports (the phone page, inlined from relay/public)
 │   ├── settings.ts          # App settings object + IPC handlers
 │   ├── state.ts             # App state object + IPC handlers
 │   ├── take-screenshot.ts   # desktopCapturer → base64 PNG of the screen under the cursor or a fixed one, cropped to `captureRegion`; `getDisplays` IPC
@@ -64,7 +67,8 @@ src/
 │   ├── api-profile.ts       # ApiProfile + AppMode types
 │   ├── knowledge.ts         # KnowledgeDoc type, the suggested per-mode limit, estimateTokens()
 │   ├── update.ts            # AvailableUpdate: a newer release main found, and how far its download got
-│   └── conversation.ts      # 对话模式 types (Utterance, HintCard, HintMode) + countMeaningfulChars()
+│   ├── conversation.ts      # 对话模式 types (Utterance, HintCard, HintMode) + countMeaningfulChars()
+│   └── mobile.ts            # 手机同步: MobileState (what phones get) + MobileSyncStatus (for the settings page)
 └── renderer/
     ├── index.html            # SPA entry
     └── src/
@@ -85,7 +89,7 @@ src/
         │   ├── ConversationStatusBar.tsx # Listening, 自动/手动, hint / stop buttons with shortcuts
         │   └── listening.ts  # Start / stop recognition (`purpose: 'conversation'`), toggle hint mode
         ├── settings/         # Settings page: left nav, one group at a time (`?tab=`)
-        │   ├── index.tsx     # Shell: nav (通用: AI 模型 / 资料库 / 语音 / 界面与隐私 / 快捷键; 模式: 截图模式 / 对话模式)
+        │   ├── index.tsx     # Shell: nav (通用: AI 模型 / 资料库 / 语音 / 界面与隐私 / 手机同步 / 快捷键; 模式: 截图模式 / 对话模式)
         │   ├── sections/     # One component per nav entry
         │   ├── components.tsx      # SettingsCard, Field, SaveDirField, Advanced (folded), SecretInput
         │   ├── SceneEditor.tsx     # One mode's prompt scenes: pick, edit, add, delete, restore
@@ -136,6 +140,12 @@ src/
         └── assets/
             ├── base.css      # Tailwind @import, CSS variables, app layout styles
             └── main.css      # Tailwind + typography plugin + theme variables (oklch)
+
+relay/                       # 手机同步's relay + phone page: its own package (`ws` only), not shipped in the app
+├── relay.mjs                # createRelay(): HTTP + WebSocket core, used by server.mjs and in-process by mobile-sync.ts
+├── server.mjs               # The public relay: `RELAY_KEY=… node server.mjs`
+├── public/                  # The phone page (plain JS, vendored marked); also inlined into main with `?raw`
+└── README.md                # Deployment (Docker / Node), in Chinese
 ```
 
 ## Architecture
@@ -202,6 +212,7 @@ src/
 - `get-transcription-text` / `clear-transcription-text` — read/clear accumulated text
 - `update:get-status` / `update:download` / `update:install` — a newer release; the last two are Windows only
 - `knowledge:list` / `knowledge:get-text` / `knowledge:pick-files` / `knowledge:import-files` / `knowledge:create` / `knowledge:update` / `knowledge:reimport` / `knowledge:remove` — 资料库; imports and reimports return their failures as values, not rejections
+- `mobile:get-status` — 手机同步: each path's state, the viewer links (LAN: one per local address, best first) and phone counts; polled by the settings page
 
 **Main → Renderer (send):**
 - `sync-app-state` — push state changes (e.g., mouse ignore toggle) to both the main and the toolbar window
@@ -228,7 +239,7 @@ src/
 
 | Store | File | Persisted | Key State |
 |-------|------|-----------|-----------|
-| `useSettingsStore` | `lib/store/settings.ts` | Yes (v8) | `apiProfiles`, `activeProfileId` (the one being edited), `screenshotProfileId`, `conversationProfileId`, `hasConfiguredApi`, `apiBaseURL`, `apiKey`, `apiHeaders`, `model`, `disableThinking` (mirror of the edited profile), `customModels`, `customModelsByBaseURL`, `modelByBaseURL`, `scenes` (prompt scenes, each with a `mode`), `activeSceneId` / `conversationSceneId`, `customPrompt` / `conversationPrompt` (derived from each mode's scene), `lastMode`, `conversationHintMode`, `conversationSilenceMs`, `conversationMinChars`, `conversationTranscriptHidden`, `conversationAutoSave`, `conversationSaveDir`, `opacity`, `resizable`, `showOverlayToolbar`, `toolbarHoverDelay`, `hideShortcutHints`, `screenshotDisplay`, `captureScreen`, `captureRegion`, `screenshotAutoSave`, `screenshotDir`, `codeAutoSave`, `codeSaveDir`, `codeFileBaseName`, `codeNamingMode`, `codeCopyToClipboard`, `dashscopeApiKey` |
+| `useSettingsStore` | `lib/store/settings.ts` | Yes (v8) | `apiProfiles`, `activeProfileId` (the one being edited), `screenshotProfileId`, `conversationProfileId`, `hasConfiguredApi`, `apiBaseURL`, `apiKey`, `apiHeaders`, `model`, `disableThinking` (mirror of the edited profile), `customModels`, `customModelsByBaseURL`, `modelByBaseURL`, `scenes` (prompt scenes, each with a `mode`), `activeSceneId` / `conversationSceneId`, `customPrompt` / `conversationPrompt` (derived from each mode's scene), `lastMode`, `conversationHintMode`, `conversationSilenceMs`, `conversationMinChars`, `conversationTranscriptHidden`, `conversationAutoSave`, `conversationSaveDir`, `opacity`, `resizable`, `showOverlayToolbar`, `toolbarHoverDelay`, `hideShortcutHints`, `screenshotDisplay`, `captureScreen`, `captureRegion`, `screenshotAutoSave`, `screenshotDir`, `codeAutoSave`, `codeSaveDir`, `codeFileBaseName`, `codeNamingMode`, `codeCopyToClipboard`, `dashscopeApiKey`, `mobileLanEnabled`, `mobileLanKey`, `mobileRelayEnabled`, `mobileRelayURL`, `mobileRelayKey` |
 | `useShortcutsStore` | `lib/store/shortcuts.ts` | Yes (v5) | `shortcuts` (action → key mapping with categories); `merge` adds new default actions on every load, so a new shortcut needs no `version` bump |
 | `useSolutionStore` | `lib/store/solution.ts` | No | `isLoading`, `solutionChunks`, `reasoningRounds`, `liveRound`, `roundUi`, `screenshotData`, `errorMessage`, `durationMs` |
 | `useTranscriptionStore` | `lib/store/transcription.ts` | No | `isTranscribing`, `transcriptionText`, `errorMessage` |
@@ -356,6 +367,19 @@ Material the user wants the AI to draw on — a resume, prepared Q&A, notes — 
 - New actions also need a label in `settings/CustomShortcuts.tsx` and a description in `help/Shortcuts.tsx`
 - Categories: `Window Management`, `Screenshot` (截图模式 only), `Conversation` (对话模式 only), `AI` (acts on whichever mode is on screen: stop, profile, scene, transcription), `Navigation`, `Window Movement`. Only the key of a stored binding is the user's; `merge` takes the category from the code
 - Actions acting on "the current mode" check `inModePage()` (`state.ts`) and are answered by `useModePage()` on either page
+
+### 手机同步 (Mobile Sync)
+
+What the mode pages show, mirrored read-only to a phone's browser (`src/main/mobile-sync.ts`). The app is the only source of truth; phones only display:
+- Main pushes the **whole** state (`MobileState` in `src/shared/mobile.ts`) as one JSON message, at most every 200ms, and the relay keeps the last one for phones that open later. No diffs, no history: a phone that reconnects just gets the current state. `v` is the format version for when the page and the app drift apart. Since the whole state is resent, it must stay under the relay's `MAX_PAYLOAD` (1 MiB): 截图模式's answer goes out as its last `MOBILE_TEXT_LIMIT` characters, and the relay client drops a frame that is still too big instead of sending it (which would close with 1009 and resend it on every reconnect)
+- Parts of the state are `registerMobileSource()`d by their owners — 截图模式's answer in `shortcuts.ts` (`mobileAnswer`, appended in `sendAnswerChunk()`), 对话模式's last cards and sentences in `conversation.ts` — which call `markMobileDirty()` on change. A new part is a new source key plus its rendering in `relay/public/app.js`. `mode` follows the page on screen (the page-change handler marks dirty) and keeps the last mode on the settings / help pages
+- The page shortcuts (`pageUp` / `pageDown`) page the phones too, for a phone read without being touched: `pageMobile()` moves `paging`, a count in the state, and the page scrolls the tab in view by how much it changed since the last message. Presses within one push add up; the first state after (re)connecting or a `host` message only sets the baseline, so nothing is replayed and a restarted app counting from 0 pages nothing
+- `relay/relay.mjs` is the one implementation of the protocol, used twice: by `relay/server.mjs` on the user's server, where the app connects to `/host` as a client (`Authorization: Bearer RELAY_KEY`), and in-process by main for 局域网 on port 8790, where `publish()` stands in for the host. The phone page in `relay/public/` is inlined into main with `?raw`, so both serve the same files
+- One key per path (`mobileLanKey`, generated; `mobileRelayKey`, the server's `RELAY_KEY`). Phones never get the key, only `deriveViewerToken(key)` (HMAC) in the link's fragment (`#t=`, never sent in requests for the page): it can watch but not push. `/check` tells the page a revoked link (401) or a full house (503, `maxViewers`: 10 by default, `MAX_VIEWERS` on the server; it keeps retrying) from a network failure; the settings page shows the limit next to the viewer count. A second app connecting with the same key takes over and the first is closed with 4000, which it does not retry
+- The QR code is shown only in the settings page, which content protection keeps off a shared screen
+- The phone page's 屏幕常亮 button keeps the phone from dimming and locking (a locked phone also drops the connection). It uses the Screen Wake Lock API where offered (HTTPS only, so the relay), else plays a 2.4 KB invisible clip inlined in `app.js` (the LAN page; `media-src data:` in the relay's CSP). The clip has a silent track and jumps back instead of `loop`: WebKit keeps the screen on only for media with sound that does not loop. The choice is kept on the phone; what cannot be retaken without a tap (a reopened page) comes back with the next tap anywhere. Desktop shortcuts never count as activity on the phone
+- Settings changes are applied 600ms after typing stops (`reconcile()`); a failed LAN start (port taken) is retried with the next change. The relay client reconnects with backoff (1s → 30s) and drops a connection silent for 60s; a 401 is not retried
+- `relay/` has its own `package.json` and `node_modules` and is excluded from the packaged app (`electron-builder.yml`); main bundles `ws` from the root dependencies
 
 ### Update Notice
 

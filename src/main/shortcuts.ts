@@ -21,6 +21,8 @@ import { getTranscriptionText, clearTranscriptionText } from './transcription'
 import { consumeStream, extractErrorMessage, isImageInputRefused } from './stream'
 import type { StreamChunk } from './stream'
 import { requestHint, stopHints, clearConversation } from './conversation'
+import { markMobileDirty, pageMobile, registerMobileSource } from './mobile-sync'
+import type { MobileAnswer } from '../shared/mobile'
 
 type Shortcut = {
   action: string
@@ -91,6 +93,21 @@ let recentScreenshots: string[] = [] // 最近截图，水平预览 (限5张)
 /** Every screenshot in the current conversation, including the ones dropped from the preview */
 let screenshotCount = 0
 let hasAppendSeparator = false
+
+/** The answer as the phones see it: the same text the page accumulates from the chunks */
+const mobileAnswer: MobileAnswer = { id: 0, status: 'idle', text: '', screenshots: 0 }
+registerMobileSource('screenshot', () => ({ ...mobileAnswer }))
+
+function updateMobileAnswer(patch: Partial<MobileAnswer>) {
+  Object.assign(mobileAnswer, patch)
+  markMobileDirty()
+}
+
+/** Part of the answer, for the page and the phones alike */
+function sendAnswerChunk(mainWindow: BrowserWindow, text: string) {
+  if (!mainWindow.isDestroyed()) mainWindow.webContents.send('solution-chunk', text)
+  updateMobileAnswer({ text: mobileAnswer.text + text })
+}
 
 const FRONT_REASSERT_DURATION = 8000
 const FRONT_REASSERT_INTERVAL = 100
@@ -291,10 +308,9 @@ function applyIgnoreMouse(): void {
  * would otherwise leave the shortcut doing nothing at all.
  */
 function reportMissingApiKey(mainWindow: BrowserWindow): void {
-  mainWindow.webContents.send(
-    'solution-error',
-    '截图模式使用的 AI 配置未填写 API Key，请到「设置 → AI 模型」填写'
-  )
+  const message = '截图模式使用的 AI 配置未填写 API Key，请到「设置 → AI 模型」填写'
+  mainWindow.webContents.send('solution-error', message)
+  updateMobileAnswer({ status: 'error', error: message })
 }
 
 /** The profile screenshots go out with, or null (after reporting it) when it has no key */
@@ -334,6 +350,8 @@ export function setIgnoreMouse(ignore: boolean): void {
 setPageChangeHandler(() => {
   applyIgnoreMouse()
   broadcastAppState()
+  // The phones follow the mode on screen
+  markMobileDirty()
 })
 
 /**
@@ -420,20 +438,29 @@ async function runAnswer(
     if (!mainWindow.isDestroyed()) mainWindow.webContents.send(channel, ...args)
   }
   if (showLoading) send('ai-loading-start')
+  updateMobileAnswer({ status: 'streaming', error: undefined })
   try {
-    const outcome = await consumeStream(createStream, streamContext.controller, (chunk) =>
-      send(chunk.kind === 'reasoning' ? 'reasoning-chunk' : 'solution-chunk', chunk.delta)
-    )
+    const outcome = await consumeStream(createStream, streamContext.controller, (chunk) => {
+      if (chunk.kind === 'reasoning') send('reasoning-chunk', chunk.delta)
+      else sendAnswerChunk(mainWindow, chunk.delta)
+    })
     if (outcome.status === 'aborted') {
-      if (streamContext.reason === 'user') send('solution-stopped')
+      // Replaced by a newer request, which has set the status already
+      if (streamContext.reason === 'user') {
+        send('solution-stopped')
+        updateMobileAnswer({ status: 'stopped' })
+      }
     } else if (outcome.status === 'failed') {
       console.error('Error streaming solution:', outcome.error)
       if (!mainWindow.isDestroyed()) {
-        send('solution-error', describeAnswerError(mainWindow, outcome.error))
+        const message = describeAnswerError(mainWindow, outcome.error)
+        send('solution-error', message)
+        updateMobileAnswer({ status: 'error', error: message })
       }
     } else {
       onComplete(outcome.text)
       send('solution-complete')
+      updateMobileAnswer({ status: 'done' })
     }
   } finally {
     if (currentStreamContext === streamContext) {
@@ -527,6 +554,7 @@ const callbacks: Record<string, () => void> = {
     screenshotCount = 1
     hasAppendSeparator = false
     mainWindow.webContents.send('solution-clear')
+    updateMobileAnswer({ id: mobileAnswer.id + 1, text: '', screenshots: screenshotCount })
     mainWindow.webContents.send('screenshots-updated', recentScreenshots, screenshotCount)
     mainWindow.webContents.send('screenshot-taken', screenshotData)
     await runAnswer(
@@ -594,11 +622,12 @@ const callbacks: Record<string, () => void> = {
     screenshotCount += 1
     mainWindow.webContents.send('screenshot-taken', screenshotData)
     mainWindow.webContents.send('screenshots-updated', recentScreenshots, screenshotCount)
+    updateMobileAnswer({ screenshots: screenshotCount })
     if (!hasAppendSeparator) {
-      mainWindow.webContents.send('solution-chunk', '\n\n---\n\n')
+      sendAnswerChunk(mainWindow, '\n\n---\n\n')
       hasAppendSeparator = true
     } else {
-      mainWindow.webContents.send('solution-chunk', '\n\n')
+      sendAnswerChunk(mainWindow, '\n\n')
     }
     // The appended screenshot gets its own reasoning, shown in its own block
     mainWindow.webContents.send('reasoning-round-start')
@@ -667,12 +696,14 @@ const callbacks: Record<string, () => void> = {
     const mainWindow = global.mainWindow
     if (!mainWindow || mainWindow.isDestroyed() || !inModePage()) return
     mainWindow.webContents.send('scroll-page-up')
+    pageMobile(-1)
   },
 
   pageDown: () => {
     const mainWindow = global.mainWindow
     if (!mainWindow || mainWindow.isDestroyed() || !inModePage()) return
     mainWindow.webContents.send('scroll-page-down')
+    pageMobile(1)
   },
 
   moveMainWindowUp: () => {
@@ -884,7 +915,7 @@ ipcMain.handle('sendFollowUpQuestion', async (_event, question: string) => {
   const streamContext = beginStream()
 
   // Add a separator before the follow-up response
-  mainWindow.webContents.send('solution-chunk', '\n\n---\n\n')
+  sendAnswerChunk(mainWindow, '\n\n---\n\n')
   // The follow-up gets its own reasoning, shown in its own block
   mainWindow.webContents.send('reasoning-round-start')
 

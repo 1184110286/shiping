@@ -288,6 +288,16 @@ interface Settings {
 
   dashscopeApiKey: string
 
+  /** 手机同步 over the LAN: the app serves the phone page itself */
+  mobileLanEnabled: boolean
+  /** The LAN page's secret, made on first use; a new one voids every QR code */
+  mobileLanKey: string
+  /** 手机同步 through relay/server.mjs on a public server */
+  mobileRelayEnabled: boolean
+  mobileRelayURL: string
+  /** The server's RELAY_KEY */
+  mobileRelayKey: string
+
   hideDockIcon: boolean
 
   audioInputDeviceId: string
@@ -409,6 +419,12 @@ const defaultSettings: Settings = {
   codeCopyToClipboard: false,
 
   dashscopeApiKey: '',
+
+  mobileLanEnabled: false,
+  mobileLanKey: '',
+  mobileRelayEnabled: false,
+  mobileRelayURL: '',
+  mobileRelayKey: '',
 
   hideDockIcon: false,
 
