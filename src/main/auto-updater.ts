@@ -43,28 +43,43 @@ function compareVersions(a: string, b: string): number {
   return 0
 }
 
+const LATEST_URL = `https://github.com/${REPO}/releases/latest`
+
 /**
- * `releases/latest` skips drafts and pre-releases. Electron's `net` goes
- * through the system proxy, which GitHub often needs from China. A failure
- * stays silent: the next check tries again.
+ * Where the `releases/latest` page redirects (`…/releases/tag/v3.2.2`), which
+ * skips drafts and pre-releases. Not the REST API: without a token it allows
+ * 60 requests an hour per IP, and a proxy exit shared by many users runs out
+ * of them. Electron's `net` goes through the system proxy, which GitHub often
+ * needs from China.
  */
+function getLatestReleaseUrl(): Promise<string | null> {
+  return new Promise((resolve, reject) => {
+    // net.fetch would follow the redirect without telling where it led
+    const request = net.request({ url: LATEST_URL, redirect: 'manual' })
+    const timer = setTimeout(() => request.abort(), 15_000)
+    const settle = (finish: () => void): void => {
+      clearTimeout(timer)
+      finish()
+      request.abort()
+    }
+    request.on('redirect', (_status, _method, redirectUrl) => settle(() => resolve(redirectUrl)))
+    // No redirect: nothing released, or an error page
+    request.on('response', () => settle(() => resolve(null)))
+    request.on('error', (err) => settle(() => reject(err)))
+    request.on('abort', () => reject(new Error('Timed out')))
+    request.end()
+  })
+}
+
+/** A failure stays silent: the next check tries again */
 async function checkLatestRelease(): Promise<void> {
   try {
-    const res = await net.fetch(`https://api.github.com/repos/${REPO}/releases/latest`, {
-      headers: { Accept: 'application/vnd.github+json' },
-      signal: AbortSignal.timeout(15_000)
-    })
-    if (!res.ok) return
-    const release = (await res.json()) as { tag_name?: unknown; html_url?: unknown }
-    if (typeof release.tag_name !== 'string') return
-    const version = release.tag_name.replace(/^v/, '')
+    const url = await getLatestReleaseUrl()
+    const tag = url && /\/releases\/tag\/([^/?#]+)$/.exec(url)?.[1]
+    if (!url || !tag) return
+    const version = decodeURIComponent(tag).replace(/^v/, '')
     if (compareVersions(version, app.getVersion()) <= 0) return
-    setUpdate({
-      version,
-      url: typeof release.html_url === 'string' ? release.html_url : releaseUrl(version),
-      installable: false,
-      phase: 'available'
-    })
+    setUpdate({ version, url, installable: false, phase: 'available' })
   } catch (err) {
     console.error('Update check failed:', err)
   }

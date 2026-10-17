@@ -362,7 +362,7 @@ Material the user wants the AI to draw on — a resume, prepared Q&A, notes — 
 `src/main/auto-updater.ts` checks at startup and every 6 hours, and reports a newer release with `update-status`. It is never a native dialog or a system notification: those are drawn outside content protection, so one popping up mid-interview would show on the shared screen
 - Shown inside the main window only: a 「有新版本」 badge after the version in `AppHeader`, leading to the help page, where `UpdateNotice` holds the details and the button
 - Windows: electron-updater with `autoDownload = false`. The user starts the download and the restart; a finished download also installs on quit (`autoInstallOnAppQuit`)
-- macOS: no Apple signature (see macOS Signing), and Squirrel.Mac was never tried with it. Main reads GitHub's `releases/latest` with `net.fetch` (system proxy) and the card links to the release page
+- macOS: no Apple signature (see macOS Signing), and Squirrel.Mac was never tried with it. Main reads the tag that github.com/…/releases/latest redirects to with `net.request` (system proxy), and the card links to the release page. Not the REST API: its 60 unauthenticated requests an hour per IP run out on a shared proxy exit
 - Both follow Latest only, never a pre-release: a release reaches users once it is promoted to Latest. A failed check stays silent
 
 ### macOS Signing
