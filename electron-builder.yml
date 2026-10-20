@@ -15,6 +15,9 @@ asarUnpack:
 afterPack: build/after-pack.mjs # macOS 由它用自签名证书签名，原因见文件开头
 win:
   executableName: 识屏
+  extraResources:
+    - from: resources/bin/windows-keyboard-guard.exe
+      to: bin/windows-keyboard-guard.exe
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
   shortcutName: ${productName}

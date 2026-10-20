@@ -55,15 +55,6 @@ export function useModePage(mode: AppMode): void {
   }, [syncAppState])
 
   useEffect(() => {
-    window.api.onAdjustOpacity((delta) => {
-      useSettingsStore.getState().adjustOpacity(delta)
-    })
-    return () => {
-      window.api.removeAdjustOpacityListener()
-    }
-  }, [])
-
-  useEffect(() => {
     window.api.onSwitchApiProfile((direction) => {
       const profile = useSettingsStore.getState().cycleProfile(mode, direction)
       if (!profile) {

@@ -20,8 +20,9 @@
     "build": "npm run typecheck && electron-vite build",
     "postinstall": "electron-builder install-app-deps",
     "build:unpack": "npm run build && electron-builder --dir",
-    "build:win": "npm run build && electron-builder --win",
-    "build:mac": "electron-vite build && electron-builder --mac"
+    "build:win": "npm run build:keyboard-guard:win && npm run build && electron-builder --win",
+    "build:mac": "electron-vite build && electron-builder --mac",
+    "build:keyboard-guard:win": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-windows-keyboard-guard.ps1"
   },
   "repository": {
     "type": "git",

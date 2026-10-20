@@ -300,6 +300,11 @@ interface Settings {
 
   hideDockIcon: boolean
 
+  /** Windows only: block the selected Ctrl key and its combinations from reaching other apps */
+  keyboardGuardEnabled: boolean
+  keyboardGuardBlockLeftCtrl: boolean
+  keyboardGuardBlockRightCtrl: boolean
+
   audioInputDeviceId: string
   audioOutputDeviceId: string
 
@@ -427,6 +432,10 @@ const defaultSettings: Settings = {
   mobileRelayKey: '',
 
   hideDockIcon: false,
+
+  keyboardGuardEnabled: false,
+  keyboardGuardBlockLeftCtrl: true,
+  keyboardGuardBlockRightCtrl: false,
 
   audioInputDeviceId: '',
   audioOutputDeviceId: '',
@@ -759,7 +768,7 @@ export const useSettingsStore = create<SettingsStore>()(
     {
       // From before the rename to 识屏; a new key would lose everyone's settings
       name: 'interview-coder-settings',
-      version: 8,
+      version: 9,
       migrate: (persisted, version) => {
         const state = persisted as Partial<Settings>
         // Drop the legacy codeLanguage field (language now lives in the prompt text)
