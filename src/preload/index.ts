@@ -107,14 +107,19 @@ const api = {
     ipcRenderer.removeAllListeners('sync-toolbar-settings')
   },
 
-  // Listen for window opacity adjustments triggered by shortcuts
-  onAdjustOpacity: (callback: (delta: number) => void) => {
-    ipcRenderer.on('adjust-opacity', (_event, delta) => {
-      callback(delta)
-    })
+  // Held opacity shortcuts preview directly in the renderer; only the final
+  // value is committed to the persisted settings store after the repeat burst.
+  onPreviewOpacity: (callback: (opacity: number) => void) => {
+    ipcRenderer.on('preview-opacity', (_event, opacity: number) => callback(opacity))
   },
-  removeAdjustOpacityListener: () => {
-    ipcRenderer.removeAllListeners('adjust-opacity')
+  removePreviewOpacityListener: () => {
+    ipcRenderer.removeAllListeners('preview-opacity')
+  },
+  onCommitOpacity: (callback: (opacity: number) => void) => {
+    ipcRenderer.on('commit-opacity', (_event, opacity: number) => callback(opacity))
+  },
+  removeCommitOpacityListener: () => {
+    ipcRenderer.removeAllListeners('commit-opacity')
   },
 
   // Shortcut asked to step through the saved AI profiles (+1 / -1)
