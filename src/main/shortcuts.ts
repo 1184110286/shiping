@@ -23,6 +23,10 @@ import type { StreamChunk } from './stream'
 import { requestHint, stopHints, clearConversation } from './conversation'
 import { markMobileDirty, pageMobile, registerMobileSource } from './mobile-sync'
 import type { MobileAnswer } from '../shared/mobile'
+import {
+  setKeyboardGuardActionHandler,
+  setKeyboardGuardShortcuts
+} from './keyboard-guard'
 
 type Shortcut = {
   action: string
@@ -773,6 +777,12 @@ const callbacks: Record<string, () => void> = {
   }
 }
 
+function runShortcutAction(action: string): void {
+  if (!isKeyRepeat(action)) callbacks[action]?.()
+}
+
+setKeyboardGuardActionHandler(runShortcutAction)
+
 const clickableActions = new Set([
   'takeScreenshot',
   'appendScreenshot',
@@ -838,9 +848,7 @@ function registerShortcut(action: string, key: string) {
 
   const keysToRegister = getShortcutRegistrationKeys(key)
   const registeredKeys: string[] = []
-  const onPress = () => {
-    if (!isKeyRepeat(action)) callbacks[action]?.()
-  }
+  const onPress = () => runShortcutAction(action)
   keysToRegister.forEach((shortcutKey) => {
     if (globalShortcut.register(shortcutKey, onPress)) {
       registeredKeys.push(shortcutKey)
@@ -863,6 +871,7 @@ ipcMain.handle(
     Object.entries(shortcuts).forEach(([action, { key }]) => {
       registerShortcut(action, key)
     })
+    setKeyboardGuardShortcuts(Object.values(shortcuts))
   }
 )
 
@@ -872,6 +881,7 @@ ipcMain.handle('updateShortcuts', (_event, _shortcuts: { action: string; key: st
       registerShortcut(shortcut.action, shortcut.key)
     }
   })
+  setKeyboardGuardShortcuts(Object.values(shortcuts).map(({ action, key }) => ({ action, key })))
 })
 
 ipcMain.handle('stopSolutionStream', () => stopAnswer())
