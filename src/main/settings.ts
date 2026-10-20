@@ -130,6 +130,10 @@ export const settings = {
   /** The server's RELAY_KEY */
   mobileRelayKey: '',
   hideDockIcon: false,
+  /** Windows only: swallow the selected Ctrl key and combinations before other apps receive them */
+  keyboardGuardEnabled: false,
+  keyboardGuardBlockLeftCtrl: true,
+  keyboardGuardBlockRightCtrl: false,
   audioInputDeviceId: '',
   audioOutputDeviceId: ''
 }
