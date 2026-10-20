@@ -7,7 +7,8 @@ import {
   hideToolbar,
   setToolbarWanted,
   reassertToolbarTopMost,
-  sendToToolbar
+  sendToToolbar,
+  setToolbarOpacity
 } from './toolbar-window'
 import { takeScreenshot } from './take-screenshot'
 import { pickCaptureRegion } from './region-picker'
@@ -45,7 +46,9 @@ enum ShortcutStatus {
 const MOVE_STEP = 200
 /** Opacity delta per shortcut press, matching the settings slider step */
 const OPACITY_STEP = 0.05
+const OPACITY_COMMIT_DELAY = 140
 const shortcuts: Record<string, Shortcut> = {}
+let opacityCommitTimer: NodeJS.Timeout | null = null
 
 /**
  * Windows repeats a held global shortcut at the keyboard's auto-repeat rate:
@@ -255,13 +258,35 @@ function keepWindowInFront(window: BrowserWindow) {
 }
 
 /**
- * Opacity is owned by the renderer settings store (persisted + synced back to
- * main), so the shortcut only asks the renderer to step it.
+ * Keep held opacity shortcuts on the same hot path as window movement.
+ *
+ * Previously every key-repeat crossed IPC into React/Zustand, wrote localStorage,
+ * re-rendered, then synced the whole settings object back to main. That work made
+ * a held shortcut feel much less responsive than move-window shortcuts.
+ *
+ * Now main owns the live value during a shortcut burst: every repeat immediately
+ * previews one absolute opacity value in the renderer and updates the toolbar.
+ * Only after repeats stop do we ask the renderer to persist the final value once.
  */
 function adjustOpacity(delta: number) {
   const mainWindow = global.mainWindow
   if (!mainWindow || mainWindow.isDestroyed() || !inModePage()) return
-  mainWindow.webContents.send('adjust-opacity', delta)
+
+  const raw = settings.opacity + delta
+  const opacity = Math.min(1, Math.max(0.1, Math.round(raw * 100) / 100))
+  if (opacity === settings.opacity) return
+
+  settings.opacity = opacity
+  mainWindow.webContents.send('preview-opacity', opacity)
+  setToolbarOpacity(opacity)
+
+  if (opacityCommitTimer) clearTimeout(opacityCommitTimer)
+  opacityCommitTimer = setTimeout(() => {
+    opacityCommitTimer = null
+    const window = global.mainWindow
+    if (!window || window.isDestroyed()) return
+    window.webContents.send('commit-opacity', settings.opacity)
+  }, OPACITY_COMMIT_DELAY)
 }
 
 function abortCurrentStream(reason: AbortReason) {
