@@ -93,6 +93,7 @@ export default function App() {
   return (
     <>
       <HashRouter>
+        <OpacityShortcutController />
         <KeyboardGuardFocusController />
         <ToolbarVisibilityController />
         <WindowResizeController />
@@ -173,6 +174,31 @@ function KeyboardGuardFocusController() {
       void window.api.keyboardGuardSetInputPaused(false)
     }
   }, [location.pathname])
+
+  return null
+}
+
+
+/**
+ * Shortcut repeats can arrive dozens of times per second. Preview them by
+ * touching the DOM directly, then persist only the final value emitted by main.
+ * This keeps the held shortcut responsive without forcing Zustand/localStorage
+ * and the full settings sync through every repeat.
+ */
+function OpacityShortcutController() {
+  useEffect(() => {
+    window.api.onPreviewOpacity((opacity) => {
+      document.body.style.opacity = opacity.toString()
+    })
+    window.api.onCommitOpacity((opacity) => {
+      useSettingsStore.getState().updateSetting('opacity', opacity)
+    })
+
+    return () => {
+      window.api.removePreviewOpacityListener()
+      window.api.removeCommitOpacityListener()
+    }
+  }, [])
 
   return null
 }
