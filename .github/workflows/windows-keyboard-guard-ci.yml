@@ -1,0 +1,52 @@
+name: Windows Keyboard Guard CI
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'scripts/windows-keyboard-guard.c'
+      - 'scripts/build-windows-keyboard-guard.ps1'
+      - 'src/main/keyboard-guard.ts'
+      - 'src/main/settings.ts'
+      - 'src/main/shortcuts.ts'
+      - 'src/main/index.ts'
+      - 'src/preload/index.ts'
+      - 'src/renderer/src/App.tsx'
+      - 'src/renderer/src/lib/store/settings.ts'
+      - 'src/renderer/src/lib/utils/env.ts'
+      - 'src/renderer/src/settings/sections/ShortcutsSection.tsx'
+      - 'package.json'
+      - 'electron-builder.yml'
+      - '.github/workflows/windows-keyboard-guard-ci.yml'
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build keyboard guard helper
+        shell: powershell
+        run: npm run build:keyboard-guard:win
+
+      - name: Verify helper exists
+        shell: powershell
+        run: |
+          if (-not (Test-Path "resources\bin\windows-keyboard-guard.exe")) {
+            throw "windows-keyboard-guard.exe was not built"
+          }
+
+      - name: Typecheck
+        run: npm run typecheck
