@@ -93,6 +93,7 @@ export default function App() {
   return (
     <>
       <HashRouter>
+        <KeyboardGuardFocusController />
         <ToolbarVisibilityController />
         <WindowResizeController />
         <Routes>
@@ -128,6 +129,50 @@ function ToolbarVisibilityController() {
     const onModePage = Object.values(MODE_PATHS).includes(location.pathname)
     void window.api.setToolbarVisible(onModePage && showOverlayToolbar)
   }, [location.pathname, showOverlayToolbar])
+
+  return null
+}
+
+
+/**
+ * Let text editing inside 识屏 keep normal Ctrl+C/V/A behaviour.
+ * When the window loses focus, protection resumes immediately even if the same input stays selected.
+ */
+function KeyboardGuardFocusController() {
+  const location = useLocation()
+
+  useEffect(() => {
+    // The overlay toolbar is another BrowserWindow rendering this app; it must not
+    // override the main window's input-focus state.
+    if (location.pathname === '/toolbar') return
+
+    const isEditable = (element: Element | null) => {
+      if (!element) return false
+      if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) return true
+      return element instanceof HTMLElement && element.isContentEditable
+    }
+
+    const sync = () => {
+      void window.api.keyboardGuardSetInputPaused(
+        document.hasFocus() && isEditable(document.activeElement)
+      )
+    }
+    const syncSoon = () => queueMicrotask(sync)
+
+    document.addEventListener('focusin', sync)
+    document.addEventListener('focusout', syncSoon)
+    window.addEventListener('focus', sync)
+    window.addEventListener('blur', sync)
+    sync()
+
+    return () => {
+      document.removeEventListener('focusin', sync)
+      document.removeEventListener('focusout', syncSoon)
+      window.removeEventListener('focus', sync)
+      window.removeEventListener('blur', sync)
+      void window.api.keyboardGuardSetInputPaused(false)
+    }
+  }, [location.pathname])
 
   return null
 }
