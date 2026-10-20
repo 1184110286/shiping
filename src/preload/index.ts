@@ -40,6 +40,10 @@ const api = {
     ipcRenderer.send('window-resize-start', direction),
   stopWindowResize: () => ipcRenderer.send('window-resize-stop'),
 
+  // Windows keyboard guard: pause only while typing in a 识屏 text editor.
+  keyboardGuardSetInputPaused: (paused: boolean) =>
+    ipcRenderer.invoke('keyboardGuard:setInputPaused', paused),
+
   // Update app state
   updateAppState: (state: Partial<AppState>) => ipcRenderer.invoke('updateAppState', state),
   getAppState: () => ipcRenderer.invoke('getAppState') as Promise<AppState>,
